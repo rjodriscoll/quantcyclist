@@ -19,7 +19,18 @@ def normalised_power(X: Series, window: int = 30) -> int:
     return round(np.sqrt(np.sqrt(np.mean(X.rolling(window).mean() ** 4))))
 
 def xPower():
+    pass # http://perfprostudio.com/webhelp/studio/scr/BikeScore.htm
+
+def relative_intensity():
+    pass
+
+def quadrant_analysis():
+    # https://trainingwithdata.com/golden-cheetah-the-ultimate-guide/15/ 
+    # split force in to 4 groups and get cadence in each 
     pass 
+
+def force_from_power(power: Series, cadence: Series) -> Series:
+    return power / cadence
 
 def kilojoules(X: Series) -> float:
     """Calculates the Kilohoules required to produce the watts
