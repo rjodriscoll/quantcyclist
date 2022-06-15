@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Tuple
 from pandas import Series
-import numpy as np
+import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 
@@ -18,31 +18,18 @@ def normalised_power(X: Series, window: int = 30) -> int:
     """
     return round(np.sqrt(np.sqrt(np.mean(X.rolling(window).mean() ** 4))))
 
-def xPower():
-    pass # http://perfprostudio.com/webhelp/studio/scr/BikeScore.htm
 
-def relative_intensity():
-    pass
-
-def quadrant_analysis():
-    # https://trainingwithdata.com/golden-cheetah-the-ultimate-guide/15/ 
-    # split force in to 4 groups and get cadence in each 
-    pass 
-
-def force_from_power(power: Series, cadence: Series) -> Series:
-    return power / cadence
-
-def kilojoules(X: Series) -> float:
-    """Calculates the Kilohoules required to produce the watts
+def xPower(X: Series, window: int = 25):
+    """Calculates the xpower ® for the input, X. xPower uses a 25 second exponential average, rather than the linear decay used in normalised power.
 
     Args:
         X (Series): Input series, power in watts sampled at 1Hz (1 sec)
+        window (int, optional): Window size over which smoothing is performed. Defaults to 25.
 
     Returns:
-        float: Kilojoules required to produce the watts
+        float: xpower in watts
     """
-    return round((X / 1000).sum(), 2)
-
+    return round(np.sqrt(np.sqrt(np.mean(pd.Series.ewm(X, span=window).mean() ** 4))))
 
 def intensity_factor(X: Series, ftp: int) -> float:
     """Calculates the intensity factor®. NP/FTP.
@@ -58,6 +45,51 @@ def intensity_factor(X: Series, ftp: int) -> float:
     return round((normalised_power(X) / ftp), 2)
 
 
+def relative_intensity(X: Series, ftp: int) -> float:
+    """Calculates the relative intesity. xpower/FTP.
+
+    Args:
+        X (Series): Input series, power in watts sampled at 1Hz (1 sec)
+        ftp (int): Funtional threshold power
+
+    Returns:
+        float: relative intensity
+    """
+
+    return xPower(X)/ ftp
+
+
+def quadrant_analysis():
+    # https://trainingwithdata.com/golden-cheetah-the-ultimate-guide/15/
+    # split force in to 4 groups and get cadence in each
+    pass
+
+
+def force_from_power(power: Series, cadence: Series) -> Series:
+    """calculates force given power and speed
+
+    Args:
+        power (Series): Input series, power in watts sampled at 1Hz (1 sec)
+        cadence (Series): Input series, cadence in rpm sampled at 1Hz (1 sec)
+
+    Returns:
+        Series: Force time series
+    """
+    return power / cadence
+
+
+def kilojoules(X: Series) -> float:
+    """Calculates the Kilohoules required to produce the watts
+
+    Args:
+        X (Series): Input series, power in watts sampled at 1Hz (1 sec)
+
+    Returns:
+        float: Kilojoules required to produce the watts
+    """
+    return round((X / 1000).sum(), 2)
+
+
 def training_stress_score(X: Series, ftp: int) -> int:
     """Calculates the training stress score® (TSS)
 
@@ -69,8 +101,22 @@ def training_stress_score(X: Series, ftp: int) -> int:
         int: Training stress score
     """
 
-    return round((len(X) * normalised_power(X) * intensity_factor(X)) / (ftp * 36))
+    return round((len(X) * normalised_power(X) * intensity_factor(X, ftp)) / (ftp * 36))
 
+
+def bike_score(X: Series, ftp: int) -> int:
+
+    """Calculates the Skiba's bike score
+
+    Args:
+        X (Series): Input series, power in watts sampled at 1Hz (1 sec)
+        ftp (int): Funtional threshold power
+
+    Returns:
+        int: bike score
+    """
+
+    return round((len(X) * xPower(X) * relative_intensity(X, ftp)) / (ftp * 36))
 
 def average_power(X: Series) -> float:
     """calcumates the mean
@@ -169,3 +215,4 @@ def endurance_index(X):
 
 def vo2_max_estimate(w5: float, weight: float) -> float:
     return round(10.8 * (w5 / weight) + 7, 2)
+
