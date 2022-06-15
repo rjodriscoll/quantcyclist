@@ -59,10 +59,26 @@ def relative_intensity(X: Series, ftp: int) -> float:
     return xPower(X)/ ftp
 
 
-def quadrant_analysis():
-    # https://trainingwithdata.com/golden-cheetah-the-ultimate-guide/15/
-    # split force in to 4 groups and get cadence in each
-    pass
+def quadrant_analysis(force: Series, cadence: Series) -> Dict:
+    """Returns the a quadrant cadence and force analysis. That is, the mean cadence for each quartile of force observed in a series.
+
+    Args:
+        force (Series): Input series, force sampled at 1Hz (1 sec)
+        cadence (Series):  Input series, cadence in rpm sampled at 1Hz (1 sec)
+
+    Returns: 
+        Dict: key value pairs of quadrants of force and mean cadene
+    """
+    
+    df = pd.concat([force, cadence], axis=1)
+    cut_offs = [c for c in df.quantile([.25, .5, .75]).iloc[:, 0]]
+    pairs = [(-math.inf, cut_offs[0]), (cut_offs[0], cut_offs[1]), (cut_offs[1], cut_offs[2]), (cut_offs[2], math.inf)]
+    keys = ['low_force', 'mid_low_force', 'mid_high_force', 'high_force']
+    di= {}
+    for i, r in enumerate(pairs):
+        di[keys[i]] = df[(df[0] > r[0]) & (df[0] < r[1])][1].mean()
+
+    return di
 
 
 def force_from_power(power: Series, cadence: Series) -> Series:
@@ -106,7 +122,7 @@ def training_stress_score(X: Series, ftp: int) -> int:
 
 def bike_score(X: Series, ftp: int) -> int:
 
-    """Calculates the Skiba's bike score
+    """Calculates Skiba's bike score
 
     Args:
         X (Series): Input series, power in watts sampled at 1Hz (1 sec)
@@ -119,7 +135,7 @@ def bike_score(X: Series, ftp: int) -> int:
     return round((len(X) * xPower(X) * relative_intensity(X, ftp)) / (ftp * 36))
 
 def average_power(X: Series) -> float:
-    """calcumates the mean
+    """Calculates the mean power
 
     Args:
         X (Series): Input series, power in watts sampled at 1Hz (1 sec)
@@ -140,6 +156,35 @@ def variability_index(X: Series) -> float:
         float: Variability index
     """
     return round(normalised_power(X) / average_power(X), 2)
+
+
+
+def endurance_index(X: Series) -> float:
+    """Returns the endurance index, W'/CP
+
+    Args:
+        X (Series):  Input series, power in watts sampled at 1Hz (1 sec)
+
+    Returns:
+        float: endurance index
+    """
+    CP, W = critical_power_W(X)
+    return round(W / CP, 2)
+
+
+def vo2_max_estimate(w5: float, weight: float) -> float:
+    """estimate vo2 max from 5 min power, acsm model
+
+    Args:
+        w5 (float): _description_
+        weight (float): _description_
+
+    Returns:
+        float: co2 max estimate
+    """
+    return round(10.8 * (w5 / weight) + 7, 2)
+
+
 
 
 def power_curve(
@@ -206,13 +251,29 @@ def critical_power_W(
 
     return round(model.intercept_, 2), round(model.coef_[0] / 1000, 2)
 
+def predict_power_given_time(time: int, CP: int, W: float) -> int:
+    """Models the theoretical power a rider can produce for time t, given a CP and W'
 
-def endurance_index(X):
+    Args:
+        time (int): time in seconds
+        CP (int): CP
+        W (float): W'
 
-    CP, W = critical_power_W(X)
-    return round(W / CP, 2)
+    Returns:
+        int: power in watts
+    """
+    return round((W * 1000 / time) + CP)
 
 
-def vo2_max_estimate(w5: float, weight: float) -> float:
-    return round(10.8 * (w5 / weight) + 7, 2)
+def predict_tte_given_power(power: int, CP: int, W: float) -> int: 
+    """Models the theoretical time a rider can ride at a specific power, given a CP and W'
 
+    Args:
+        power (int): _description_
+        CP (int): _description_
+        W (float): _description_
+
+    Returns:
+        int: _description_
+    """
+    return round((W * 1000)/(power - CP))
