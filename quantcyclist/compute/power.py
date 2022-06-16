@@ -8,6 +8,8 @@ import pandas as pd
 from pandas import Series
 from sklearn.linear_model import LinearRegression
 
+from capacity import critical_power_W
+
 
 def normalised_power(X: Series, window: int = 30) -> int:
     """Calculates the normalised power ® for the input, X.
@@ -220,33 +222,3 @@ def power_curve(
     return di
 
 
-def critical_power_W(
-    X: Series, intervals: List = [180, 300, 480, 1200], model: str = "three"
-) -> Tuple[float, float]:
-
-    """Calculates CP and W' based on Power = W’/Time + CP.
-
-
-    Args:
-        X (Series): Input series, power in watts sampled at 1Hz (1 sec)
-        intervals (List, optional): A list of time intervals in seconds
-        model (str): 'three' or 'four', controls whether 3 or 4 time intervals are used in the CP calculation.
-
-    Returns:
-        Tuple: CP, W'
-    """
-
-    if model not in ["three", "four"]:
-        raise ValueError(f"Model must be either three or four. Got {model}")
-
-    if model == "three":
-        intervals = intervals[:-1]
-
-    power_duration_dict = power_curve(X, intervals)
-
-    times = np.array([1 / t for t in power_duration_dict.keys()]).reshape(-1, 1)
-    powers = np.array([p for p in power_duration_dict.values()])
-
-    model = LinearRegression().fit(times, powers)
-
-    return round(model.intercept_, 2), round(model.coef_[0] / 1000, 2)
