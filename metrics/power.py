@@ -121,7 +121,6 @@ def training_stress_score(X: Series, ftp: int) -> int:
 
 
 def bike_score(X: Series, ftp: int) -> int:
-
     """Calculates Skiba's bike score
 
     Args:
@@ -160,7 +159,7 @@ def variability_index(X: Series) -> float:
 
 
 def endurance_index(X: Series) -> float:
-    """Returns the endurance index, W'/CP
+    """Calculates the endurance index, W'/CP
 
     Args:
         X (Series):  Input series, power in watts sampled at 1Hz (1 sec)
@@ -173,7 +172,7 @@ def endurance_index(X: Series) -> float:
 
 
 def vo2_max_estimate(w5: float, weight: float) -> float:
-    """estimate vo2 max from 5 min power, acsm model
+    """Estimates vo2 max from 5 min power, acsm model
 
     Args:
         w5 (float): _description_
