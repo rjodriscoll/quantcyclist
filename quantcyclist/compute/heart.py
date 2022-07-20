@@ -1,9 +1,11 @@
 """functions related to heart rate analysis """
 
+from ast import Return
 from pandas import Series
 from typing import List
 from power import normalised_power
 import math
+
 
 def aerobic_decoupling(Power: Series, HR: Series) -> float:
     """calculataes a
@@ -15,6 +17,7 @@ def aerobic_decoupling(Power: Series, HR: Series) -> float:
     Returns:
         float: aerobic decoupling, a percentage
     """
+
     mid_point = len(HR) / 2
     np_start, np_end = normalised_power(Power[:mid_point]), normalised_power(
         Power[mid_point:]
@@ -36,7 +39,7 @@ def strava_suffer_score(HR: Series, zones: List) -> int:
         ValueError: assumes 4 zone cut offs are provided, if not a valueerror is raised
 
     Returns:
-        _type_: _description_
+        int: suffer score from strava
     """
 
     if len(zones) != 4:
@@ -49,9 +52,27 @@ def strava_suffer_score(HR: Series, zones: List) -> int:
         "4": 300 / 3600,
     }
     zones = [-math.inf] + zones + [math.inf]
-   
+
     suffer_score = 0
     for i, j in enumerate(zones[1:-1]):
         suffer_score += (len(HR[(HR > zones[i]) & (HR < j)])) * mapp[str(i)]
 
     return round(suffer_score)
+
+
+def hr_tss(HR: Series, min_hr: int, max_hr: int, gender: str) -> int:
+    """calculates the tss for a heart rate series
+
+    Args:
+        HR (Series): HR series, sampled at 1 hz (1 observation per second)
+        min_hr (int): athletes resting heart rate 
+        max_hr (int): athletes max heart rate
+        gender (str): "female" or "male"
+
+    Returns:
+        int: exponentially weighted heart rate TSS
+    """
+
+    HRR = (HR.mean() - min_hr) / (max_hr - min_hr)
+    k = 1.67 if gender == "female" else 1.92
+    return (len(HR) / 60) * HRR * 0.64 ^ (k * HRR)
